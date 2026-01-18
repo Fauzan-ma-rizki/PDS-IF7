@@ -212,8 +212,11 @@ elif menu == "🗺️ Pemetaan UMKM":
 # ===================== MENU 4 =====================
 elif menu == "📋 Data Mentah":
     st.title("📋 Data Mentah UMKM")
-    st.dataframe(df, use_container_width=True)
+    df_display = df.copy()
+    df_display.index = range(1, len(df_display) + 1)
+    st.dataframe(df_display, use_container_width=True)
 
 # ===================== FOOTER =====================
 st.sidebar.markdown("---")
 st.sidebar.caption("© SIPETA 2026")
+
