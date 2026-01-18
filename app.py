@@ -74,12 +74,12 @@ with st.sidebar:
     st.subheader("📍 Filter Wilayah Global")
     wilayah_sidebar = st.selectbox(
         "Pilih Wilayah",
-        ["Seluruh Jawa Barat"] + list(KOTA_COORDS.keys())
+        ["Daerah Jawa Barat"] + list(KOTA_COORDS.keys())
     )
 
-# ===================== FILTER =====================
+# ===================== FILTER GLOBAL =====================
 f_df = df.copy()
-if wilayah_sidebar != "Seluruh Jawa Barat":
+if wilayah_sidebar != "Daerah Jawa Barat":
     f_df = f_df[f_df['Wilayah'] == wilayah_sidebar]
 
 # ===================== MENU 1 =====================
@@ -89,34 +89,57 @@ if menu == "💎 Ringkasan Data":
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Total UMKM", len(f_df))
     c2.metric("Rata-rata Rating", f"{f_df['Rating'].mean():.2f}")
-    c3.metric("Sektor Terpadat", f_df['Kelompok_Bisnis'].mode()[0])
-    c4.metric("Potensi Pasar", "Tinggi" if f_df['Rating'].mean() < 4.3 else "Menengah")
+    
+    # Cek jika data tidak kosong untuk mode()
+    sektor_padat = f_df['Kelompok_Bisnis'].mode()[0] if not f_df.empty else "N/A"
+    c3.metric("Sektor Terpadat", sektor_padat)
+    
+    potensi = "Tinggi" if not f_df.empty and f_df['Rating'].mean() < 4.3 else "Menengah"
+    c4.metric("Potensi Pasar", potensi)
 
-    fig = px.sunburst(
-        f_df,
-        path=['Kelompok_Bisnis', 'Kategori'],
-        values='Rating',
-        title="Struktur Pasar Kuliner"
-    )
-    st.plotly_chart(fig, use_container_width=True)
+    st.markdown("---")
+    
+    col_left, col_right = st.columns(2)
+
+    with col_left:
+        # LOGIKA REKOMENDASI YANG DITAMBAHKAN
+        st.subheader("💡 Rekomendasi Peluang Buka Usaha")
+        if not f_df.empty:
+            counts = f_df['Kelompok_Bisnis'].value_counts()
+            st.info(f"**Market Gap Detected:** Sektor **{counts.idxmin()}** memiliki kompetisi terendah.")
+            st.warning(f"**Saturasi Tinggi:** Sektor **{counts.idxmax()}** sangat padat.")
+        else:
+            st.write("Data kosong.")
+
+    with col_right:
+        fig = px.sunburst(
+            f_df,
+            path=['Kelompok_Bisnis', 'Kategori'],
+            values='Rating',
+            title="Struktur Pasar Kuliner"
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
 # ===================== MENU 2 =====================
 elif menu == "📈 Visualisasi Data":
     st.title("📈 Analisis Kompetisi UMKM")
 
-    comp = f_df.groupby('Kategori').agg(
-        Total=('Nama', 'count'),
-        Avg_Rating=('Rating', 'mean')
-    ).reset_index()
+    if not f_df.empty:
+        comp = f_df.groupby('Kategori').agg(
+            Total=('Nama', 'count'),
+            Avg_Rating=('Rating', 'mean')
+        ).reset_index()
 
-    fig = px.bar(
-        comp.sort_values('Total', ascending=False),
-        x='Kategori',
-        y='Total',
-        color='Avg_Rating',
-        title="Jumlah UMKM per Kategori"
-    )
-    st.plotly_chart(fig, use_container_width=True)
+        fig = px.bar(
+            comp.sort_values('Total', ascending=False),
+            x='Kategori',
+            y='Total',
+            color='Avg_Rating',
+            title="Jumlah UMKM per Kategori"
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("Tidak ada data untuk divisualisasikan.")
 
 # ===================== MENU 3 (PEMETAAN) =====================
 elif menu == "🗺️ Pemetaan UMKM":
@@ -129,16 +152,13 @@ elif menu == "🗺️ Pemetaan UMKM":
         keyword = st.text_input("Cari Nama UMKM")
         show_heatmap = st.checkbox("Aktifkan Heatmap")
 
-    # Ambil data dasar berdasarkan filter wilayah 
     map_df = f_df.dropna(subset=['lat', 'lng']).copy()
 
-    # Filter data berdasarkan keyword pencarian 
     if keyword.strip():
         map_df = map_df[map_df['Nama'].str.contains(keyword, case=False, na=False)]
 
     selected_umkm = None
     if not map_df.empty:
-        # Dropdown otomatis berisi UMKM dari wilayah yang dipilih 
         options = ["-- Lihat Semua --"] + sorted(map_df['Nama'].unique().tolist())
         choice = st.selectbox("📌 Fokus ke UMKM spesifik", options)
         if choice != "-- Lihat Semua --":
@@ -148,42 +168,22 @@ elif menu == "🗺️ Pemetaan UMKM":
         if map_df.empty:
             st.warning(f"❌ Tidak ada data UMKM ditemukan")
         else:
-            # Tentukan titik tengah dasar 
             center = KOTA_COORDS.get(wilayah_sidebar, (-6.9175, 107.6191))
             m = folium.Map(location=center, zoom_start=11, tiles="CartoDB positron", control_scale=True)
 
-            # LOGIKA ZOOM: Pilih salah satu (Zoom Spesifik ATAU Lihat Semua)
             if selected_umkm:
-                # Ambil data UMKM yang dipilih
                 r = map_df[map_df['Nama'] == selected_umkm].iloc[0]
-                m = folium.Map(
-                   location = [r['lat'], r['lng']],
-                   zoom_start = 18,
-                   title="CartoDB positron" 
-                )
-                
-                # Tambahkan Marker Bintang Merah
+                m = folium.Map(location=[r['lat'], r['lng']], zoom_start=18)
                 folium.Marker(
                     [r['lat'], r['lng']], 
                     popup=f"<b>{r['Nama']}</b>", 
                     icon=folium.Icon(color='red', icon='star')
                 ).add_to(m)
-            
-                js = f"""
-                <script>
-                 setTimeout(function(){{
-                 map.setView([{r['lat']}, {r['lng']}], 18);                                      
-                }}, 300);
-                 </script>                                        
-                """ 
-                m.get_root().html.add_child(folium.Element(js))
-                
             else:
                 sw = map_df[['lat', 'lng']].min().values.tolist()
                 ne = map_df[['lat', 'lng']].max().values.tolist()
                 m.fit_bounds([sw, ne])
 
-            # Tambahkan Heatmap & Cluster 
             if show_heatmap:
                 HeatMap(map_df[['lat', 'lng']].values.tolist()).add_to(m)
 
@@ -197,11 +197,9 @@ elif menu == "🗺️ Pemetaan UMKM":
                     icon=folium.Icon(color="blue", icon="info-sign")
                 ).add_to(cluster)
 
-            # Gunakan gabungan nama wilayah dan nama UMKM sebagai ID unik
             map_id = f"map_{wilayah_sidebar}_{selected_umkm}".replace(" ", "_")
             st_folium(m, width="100%", height=550, key=map_id, returned_objects=[])
             
-    # ===== BAGIAN TABEL DATA ======
     st.markdown("---")
     st.subheader(f"📋 Daftar UMKM: {wilayah_sidebar}")
     if not map_df.empty:
@@ -209,7 +207,8 @@ elif menu == "🗺️ Pemetaan UMKM":
         display_table.index = range(1, len(display_table) + 1)
         st.dataframe(display_table, use_container_width=True)
     else:
-        st.info("Pilih wilayah di sidebar untuk melihat daftar UMKM.")
+        st.info("Data tidak tersedia.")
+
 # ===================== MENU 4 =====================
 elif menu == "📋 Data Mentah":
     st.title("📋 Data Mentah UMKM")
