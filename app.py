@@ -59,7 +59,7 @@ if df is None:
 # ===================== SIDEBAR =====================
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/3222/3222640.png", width=80)
-    st.title("Dashboard UMKM")
+    st.title("Dashboard SIPETA UMKM")
 
     menu = st.radio(
         "Navigasi",
@@ -219,4 +219,5 @@ elif menu == "📋 Data Mentah":
 # ===================== FOOTER =====================
 st.sidebar.markdown("---")
 st.sidebar.caption("© SIPETA 2026")
+
 
