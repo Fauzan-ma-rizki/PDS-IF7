@@ -71,18 +71,18 @@ with st.sidebar:
         ]
     )
 
-    st.subheader("📍 Filter Wilayah Global")
+    st.subheader("📍 Filter Daerah Jabar")
     wilayah_sidebar = st.selectbox(
         "Pilih Wilayah",
         ["Daerah Jawa Barat"] + list(KOTA_COORDS.keys())
     )
 
-# ===================== FILTER GLOBAL =====================
+# ===================== FILTER Daerah jabar =====================
 f_df = df.copy()
 if wilayah_sidebar != "Daerah Jawa Barat":
     f_df = f_df[f_df['Wilayah'] == wilayah_sidebar]
 
-# ===================== MENU 1 =====================
+# ===================== MENU 1: RINGKASAN =====================
 if menu == "💎 Ringkasan Data":
     st.title(f"📊 Ringkasan Analisis UMKM – {wilayah_sidebar}")
 
@@ -90,7 +90,6 @@ if menu == "💎 Ringkasan Data":
     c1.metric("Total UMKM", len(f_df))
     c2.metric("Rata-rata Rating", f"{f_df['Rating'].mean():.2f}")
     
-    # Cek jika data tidak kosong untuk mode()
     sektor_padat = f_df['Kelompok_Bisnis'].mode()[0] if not f_df.empty else "N/A"
     c3.metric("Sektor Terpadat", sektor_padat)
     
@@ -99,49 +98,56 @@ if menu == "💎 Ringkasan Data":
 
     st.markdown("---")
     
-    col_left, col_right = st.columns(2)
+    st.subheader("💡 Rekomendasi Peluang Buka Usaha")
+    if not f_df.empty:
+        counts = f_df['Kelompok_Bisnis'].value_counts()
+        st.info(f"**Sektor Paling Potensial:** Sektor **{counts.idxmin()}** memiliki kompetisi terendah.")
+        st.warning(f"**Persaingan Ketat:** Sektor **{counts.idxmax()}** sangat padat.")
+    else:
+        st.write("Data kosong.")
 
-    with col_left:
-        # LOGIKA REKOMENDASI YANG DITAMBAHKAN
-        st.subheader("💡 Rekomendasi Peluang Buka Usaha")
-        if not f_df.empty:
-            counts = f_df['Kelompok_Bisnis'].value_counts()
-            st.info(f"**Market Gap Detected:** Sektor **{counts.idxmin()}** memiliki kompetisi terendah.")
-            st.warning(f"**Saturasi Tinggi:** Sektor **{counts.idxmax()}** sangat padat.")
-        else:
-            st.write("Data kosong.")
-
-    with col_right:
-        fig = px.sunburst(
-            f_df,
-            path=['Kelompok_Bisnis', 'Kategori'],
-            values='Rating',
-            title="Struktur Pasar Kuliner"
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-# ===================== MENU 2 =====================
+# ===================== MENU 2: VISUALISASI =====================
 elif menu == "📈 Visualisasi Data":
     st.title("📈 Analisis Kompetisi UMKM")
 
     if not f_df.empty:
-        comp = f_df.groupby('Kategori').agg(
-            Total=('Nama', 'count'),
-            Avg_Rating=('Rating', 'mean')
-        ).reset_index()
+        col_bar, col_sun = st.columns(2)
 
-        fig = px.bar(
-            comp.sort_values('Total', ascending=False),
-            x='Kategori',
-            y='Total',
-            color='Avg_Rating',
-            title="Jumlah UMKM per Kategori"
-        )
-        st.plotly_chart(fig, use_container_width=True)
+        with col_bar:
+            comp = f_df.groupby('Kategori').agg(
+                Total=('Nama', 'count'),
+                Avg_Rating=('Rating', 'mean')
+            ).reset_index()
+
+            fig_bar = px.bar(
+                comp.sort_values('Total', ascending=False),
+                x='Kategori',
+                y='Total',
+                color='Avg_Rating',
+                title="Jumlah UMKM per Kategori",
+                color_continuous_scale='RdYlGn'
+            )
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+        with col_sun:
+            fig_sun = px.sunburst(
+                f_df,
+                path=['Kelompok_Bisnis', 'Kategori'],
+                values='Rating',
+                title="Struktur Pasar & Persentase Sektor",
+                color='Kelompok_Bisnis',
+                color_discrete_sequence=px.colors.qualitative.Pastel
+            )
+            
+            fig_sun.update_traces(
+                textinfo="label+percent entry", 
+                insidetextorientation='radial'
+            )
+            st.plotly_chart(fig_sun, use_container_width=True)
     else:
         st.warning("Tidak ada data untuk divisualisasikan.")
 
-# ===================== MENU 3 (PEMETAAN) =====================
+# ===================== MENU 3: PEMETAAN =====================
 elif menu == "🗺️ Pemetaan UMKM":
     st.title("🗺️ Pemetaan & Pencarian UMKM")
 
@@ -209,7 +215,7 @@ elif menu == "🗺️ Pemetaan UMKM":
     else:
         st.info("Data tidak tersedia.")
 
-# ===================== MENU 4 =====================
+# ===================== MENU 4: DATA MENTAH =====================
 elif menu == "📋 Data Mentah":
     st.title("📋 Data Mentah UMKM")
     df_display = df.copy()
@@ -219,5 +225,3 @@ elif menu == "📋 Data Mentah":
 # ===================== FOOTER =====================
 st.sidebar.markdown("---")
 st.sidebar.caption("© SIPETA 2026")
-
-
