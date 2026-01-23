@@ -205,15 +205,6 @@ elif menu == "🗺️ Pemetaan UMKM":
 
             map_id = f"map_{wilayah_sidebar}_{selected_umkm}".replace(" ", "_")
             st_folium(m, width="100%", height=550, key=map_id, returned_objects=[])
-            
-    st.markdown("---")
-    st.subheader(f"📋 Daftar UMKM: {wilayah_sidebar}")
-    if not map_df.empty:
-        display_table = map_df[['Nama', 'Wilayah', 'Kategori', 'Rating']].copy()
-        display_table.index = range(1, len(display_table) + 1)
-        st.dataframe(display_table, use_container_width=True)
-    else:
-        st.info("Data tidak tersedia.")
 
 # ===================== MENU 4: DATA MENTAH =====================
 elif menu == "📋 Data Mentah":
