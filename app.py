@@ -53,7 +53,7 @@ def load_data():
 
 df = load_data()
 if df is None:
-    st.error("❌ File data_jabar_umkm.csv tidak ditemukan")
+    st.error("File data_jabar_umkm.csv tidak ditemukan")
     st.stop()
 
 # ===================== SIDEBAR =====================
@@ -166,13 +166,13 @@ elif menu == "🗺️ Pemetaan UMKM":
     selected_umkm = None
     if not map_df.empty:
         options = ["-- Lihat Semua --"] + sorted(map_df['Nama'].unique().tolist())
-        choice = st.selectbox("📌 Fokus ke UMKM spesifik", options)
+        choice = st.selectbox("📌 Pilih UMKM yang spesifik", options)
         if choice != "-- Lihat Semua --":
             selected_umkm = choice
 
     with col_map:
         if map_df.empty:
-            st.warning(f"❌ Tidak ada data UMKM ditemukan")
+            st.warning(f"Tidak ada data UMKM ditemukan")
         else:
             center = KOTA_COORDS.get(wilayah_sidebar, (-6.9175, 107.6191))
             m = folium.Map(location=center, zoom_start=11, tiles="CartoDB positron", control_scale=True)
@@ -216,3 +216,4 @@ elif menu == "📋 Data Mentah":
 # ===================== FOOTER =====================
 st.sidebar.markdown("---")
 st.sidebar.caption("© SIPETA 2026")
+
