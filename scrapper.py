@@ -56,14 +56,14 @@ def scrape_jabar_raya(total_target=1500):
                 time.sleep(5) 
 
                 try:
-                    # Scroll lebih dalam (5 kali) agar mendapatkan lebih banyak data per kategori
+                    # Scroll lebih dalam agar mendapatkan lebih banyak data per kategori
                     scrollable_div = driver.find_element(By.XPATH, '//div[@role="feed"]')
                     for _ in range(5):
                         driver.execute_script('arguments[0].scrollTop = arguments[0].scrollHeight', scrollable_div)
                         time.sleep(1.5)
                 except: pass
 
-                # Ambil SEMUA data yang muncul (batasan [:10] dihapus)
+                # Ambil SEMUA data yang muncul
                 places = driver.find_elements(By.CLASS_NAME, "hfpxzc")
                 
                 for p in places:
@@ -72,7 +72,7 @@ def scrape_jabar_raya(total_target=1500):
                         name = p.get_attribute("aria-label")
                         parent_text = p.find_element(By.XPATH, "./../../..").text
                         
-                        # Ekstraksi Rating
+                        # Rating
                         rating = 0.0
                         lines = parent_text.split('\n')
                         for line in lines:
@@ -95,16 +95,16 @@ def scrape_jabar_raya(total_target=1500):
                             })
                     except: continue
             
-            print(f"✅ Progres: {len(all_data)} data terkumpul.")
+            print(f" Progres: {len(all_data)} data terkumpul.")
 
         # Simpan ke CSV
         df_final = pd.DataFrame(all_data)
         df_final.to_csv("data_jabar_umkm.csv", index=False)
-        print(f"🎉 Scraping Selesai! Total data yang didapat: {len(df_final)}")
+        print(f"Scraping Selesai Total data yang didapat: {len(df_final)}")
         driver.quit()
         return True
     except Exception as e:
-        print(f"❌ Error Terjadi: {e}")
+        print(f"Error : {e}")
         if 'driver' in locals(): driver.quit()
         return False
 
